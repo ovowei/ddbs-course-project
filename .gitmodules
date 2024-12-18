@@ -1,3 +1,6 @@
 [submodule "third_party/sql-parser"]
 	path = third_party/sql-parser
 	url = https://github.com/hyrise/sql-parser
+[submodule "third_party/eRPC"]
+	path = third_party/eRPC
+	url = https://github.com/erpc-io/eRPC.git
