@@ -589,7 +589,7 @@ class Control {
         primary_db[1]->execute(create_sql2);
     }
 
-    void add_standby_db(const std::string &host, const std::string &user, const std::string &password, const std::string &schema) {
+    int add_standby_db(const std::string &host, const std::string &user, const std::string &password, const std::string &schema) {
         try {
             // 创建一个新的数据库连接
             DataBaseConnect *new_db = new DataBaseConnect(host, user, password, schema, true);
@@ -605,9 +605,10 @@ class Control {
             standby_dbs.insert(db_cons.size() - 1);  // 记录为 standby
 
             std::cout << "Successfully added a new standby database." << std::endl;
+            return 1;
         } catch (sql::SQLException &e) {
             std::cerr << "Error adding standby DB: " << e.what() << "\n";
-            throw std::runtime_error("Failed to connect to standby database.");
+            return 0;
         }
     }
 

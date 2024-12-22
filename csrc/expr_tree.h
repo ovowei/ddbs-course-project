@@ -48,7 +48,7 @@ class Treenode {
 
     Schema* schema;
     enum Operation {
-        NONE,  // 默认操作
+        NONE, 
         JOIN,
         UNION,
         GROUPBY,
@@ -60,7 +60,7 @@ class Treenode {
 
     // Description for operations
     std::shared_ptr<KeyDescription> joinDescription;
-    std::shared_ptr<KeyDescription> unionDescription;  // Reused KeyDescription for UNION
+    std::shared_ptr<KeyDescription> unionDescription;  
     std::shared_ptr<GroupbyDescription> groupbyDescription;
     std::shared_ptr<OrderbyDescription> orderbyDescription;
     std::shared_ptr<LimitDescription> limitDescription;
