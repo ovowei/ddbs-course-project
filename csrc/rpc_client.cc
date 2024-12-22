@@ -11,6 +11,7 @@ static uint8_t flag = 0;  // 请求标志，用于跟踪请求类型
 char dummy[] = "test";    // 示例数据
 Timer timer;
 FS_ENGINE fs;
+Rpcclient rpcclient(0, clientname, kUDPPort);
 
 // Continuation function，输出请求类型、返回结果和执行时间
 void cont_func(void *_context, void *_tag) {
@@ -53,16 +54,6 @@ void cont_func(void *_context, void *_tag) {
 }
 
 int main(int argc, char *argv[]) {
-    // 从终端获取参数
-    std::string clientname = "10.0.2.185";
-    std::string servername = "10.0.2.183";
-    uint16_t kUDPPort = 31850;
-
-    if (argc > 1) clientname = argv[1];
-    if (argc > 2) servername = argv[2];
-    if (argc > 3) kUDPPort = std::stoi(argv[3]);
-
-    Rpcclient rpcclient(0, clientname, kUDPPort);
     rpcclient.Activate_client(servername);
 
     std::string input;

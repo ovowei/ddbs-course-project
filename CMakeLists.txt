@@ -33,32 +33,17 @@ add_custom_target(
 add_dependencies(build_erpc build_sql_parser)
 
 # Add executables and link with libraries
-# # Rpcclient
-# add_executable(Rpcclient Rpcclient.cc)
-# add_dependencies(Rpcclient build_erpc build_sql_parser)
-# target_link_libraries(Rpcclient erpc pthread numa dl ibverbs mysqlcppconn sqlparser)
+# rpc_client
+add_executable(rpc_client csrc/rpc_client.cc)
+add_dependencies(rpc_client build_erpc build_sql_parser)
+target_link_libraries(rpc_client erpc pthread numa dl ibverbs mysqlcppconn sqlparser)
 
-# # Rpcserver
-# add_executable(Rpcserver Rpcserver.cc)
-# add_dependencies(Rpcserver build_erpc build_sql_parser)
-# target_link_libraries(Rpcserver erpc pthread numa dl ibverbs mysqlcppconn sqlparser)
-
-# # db-impl
-# add_executable(db-impl db-impl.cc)
-# add_dependencies(db-impl build_erpc build_sql_parser)
-# target_link_libraries(db-impl erpc pthread numa dl ibverbs mysqlcppconn sqlparser)
-
-# # parser_example
-# add_executable(parser_example parser_example.cc)
-# add_dependencies(parser_example build_sql_parser)
-# target_link_libraries(parser_example sqlparser)
+# rpc_server
+add_executable(rpc_server csrc/rpc_server.cc)
+add_dependencies(rpc_server build_erpc build_sql_parser)
+target_link_libraries(rpc_server erpc pthread numa dl ibverbs mysqlcppconn sqlparser)
 
 # connector_example
 add_executable(connector_example csrc/connector_example.cc)
 add_dependencies(connector_example build_sql_parser)
 target_link_libraries(connector_example mysqlcppconn)
-
-# # control
-# add_executable(control control.cc)
-# add_dependencies(control build_erpc build_sql_parser)
-# target_link_libraries(control erpc pthread numa dl ibverbs mysqlcppconn sqlparser)

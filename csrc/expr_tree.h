@@ -24,6 +24,8 @@ class Expr {
     std::string column_name;
     std::string const_string;
 
+    Expr() = default;
+
     // Constructor for leaf nodes
     Expr(Type type, const std::string& column_name = "", const std::string& const_string = "")
         : type(type), column_name(column_name), const_string(const_string), child1(nullptr), child2(nullptr) {}
@@ -41,26 +43,52 @@ struct KeyDescription {
 // Aggregate type for Groupby
 enum AggrType { COUNT, SUM, MAX, MIN, AVG };
 
+// Groupby description
+class GroupbyDescription {
+   public:
+    std::vector<std::string> keys;
+    std::vector<AggrType> aggr;
+
+    GroupbyDescription(const std::vector<std::string>& keys, const std::vector<AggrType>& aggr) : keys(keys), aggr(aggr) {}
+};
+
+// Orderby description
+class OrderbyDescription {
+   public:
+    std::vector<std::string> keys;
+    enum OrderType { ASC, DESC } cmp;
+
+    OrderbyDescription(const std::vector<std::string>& keys, OrderType cmp) : keys(keys), cmp(cmp) {}
+};
+
+// Limit description
+class LimitDescription {
+   public:
+    int limit_num;
+
+    LimitDescription(int limit_num) : limit_num(limit_num) {}
+};
+
+// Filter description
+class FilterDescription {
+   public:
+    std::shared_ptr<Expr> condition;
+
+    FilterDescription() = default;
+    FilterDescription(std::shared_ptr<Expr> condition) : condition(condition) {}
+};
+
 // Plan tree node structure
 class Treenode {
    public:
     enum Position { MYSQL1, MYSQL2, CONTROL } position;
 
     Schema* schema;
-    enum Operation {
-        NONE, 
-        JOIN,
-        UNION,
-        GROUPBY,
-        ORDERBY,
-        LIMIT,
-        FILTER,
-        PROJECT
-    } operation;
+    enum Operation { NONE, JOIN, UNION, GROUPBY, ORDERBY, LIMIT, FILTER, PROJECT } operation;
 
     // Description for operations
     std::shared_ptr<KeyDescription> joinDescription;
-    std::shared_ptr<KeyDescription> unionDescription;  
+    std::shared_ptr<KeyDescription> unionDescription;
     std::shared_ptr<GroupbyDescription> groupbyDescription;
     std::shared_ptr<OrderbyDescription> orderbyDescription;
     std::shared_ptr<LimitDescription> limitDescription;
@@ -99,40 +127,6 @@ class Treenode {
         filterDescription = std::make_shared<FilterDescription>();
         filterDescription->condition = condition;
     }
-};
-
-// Groupby description
-class GroupbyDescription {
-   public:
-    std::vector<std::string> keys;
-    std::vector<AggrType> aggr;
-
-    GroupbyDescription(const std::vector<std::string>& keys, const std::vector<AggrType>& aggr) : keys(keys), aggr(aggr) {}
-};
-
-// Orderby description
-class OrderbyDescription {
-   public:
-    std::vector<std::string> keys;
-    enum OrderType { ASC, DESC } cmp;
-
-    OrderbyDescription(const std::vector<std::string>& keys, OrderType cmp) : keys(keys), cmp(cmp) {}
-};
-
-// Limit description
-class LimitDescription {
-   public:
-    int limit_num;
-
-    LimitDescription(int limit_num) : limit_num(limit_num) {}
-};
-
-// Filter description
-class FilterDescription {
-   public:
-    std::shared_ptr<Expr> condition;
-
-    FilterDescription(std::shared_ptr<Expr> condition) : condition(condition) {}
 };
 
 #endif  // EXPR_TREE_H

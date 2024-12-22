@@ -16,6 +16,10 @@ static constexpr uint8_t kregisterStandbyType = 8;
 
 static constexpr size_t kMsgSize = 1024;
 
+std::string clientname = "10.0.2.185";
+std::string servername = "10.0.2.183";
+uint16_t kUDPPort = 31850;
+
 void sm_handler(int, erpc::SmEventType, erpc::SmErrType, void *) {}
 void cont_func(void *_context, void *_tag);
 

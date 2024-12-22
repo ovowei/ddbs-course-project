@@ -657,7 +657,7 @@ class Control {
         std::cout << "Sufficient primary databases available. Resuming execution." << std::endl;
     }
 
-    Control::Control(const std::string &primary1_host, const std::string &primary1_user, const std::string &primary1_password,
+    Control(const std::string &primary1_host, const std::string &primary1_user, const std::string &primary1_password,
                      const std::string &primary1_schema, const std::string &primary2_host, const std::string &primary2_user,
                      const std::string &primary2_password, const std::string &primary2_schema) {
         // initialize schema

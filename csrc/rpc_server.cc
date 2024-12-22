@@ -112,7 +112,7 @@ void req_handler_dump(erpc::ReqHandle *req_handle, void *context) {
     int primary_index = std::stoi(buf);
 
     try {
-        control.dump_primary(primary_index);
+        control.manual_dump_primary(primary_index);
         sprintf(buf, "Primary DB %d dumped successfully!", primary_index);
     } catch (const std::exception &e) {
         sprintf(buf, "Failed to dump Primary DB %d: %s", primary_index, e.what());
@@ -122,12 +122,6 @@ void req_handler_dump(erpc::ReqHandle *req_handle, void *context) {
 }
 
 int main(int argc, char *argv[]) {
-    // 设置服务器 URI
-    std::string servername = "10.0.2.183";
-    uint16_t kUDPPort = 31850;
-
-    if (argc > 1) servername = argv[1];
-    if (argc > 2) kUDPPort = std::stoi(argv[2]);
 
     control.bulk_load(1);
     control.bulk_load(2);
