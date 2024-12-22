@@ -32,3 +32,6 @@
 *.app
 
 build/
+data/
+.vscode/
+.clang-format
