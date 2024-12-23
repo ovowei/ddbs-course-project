@@ -71,7 +71,7 @@ std::string handlePopular(const std::string &params) {
     std::vector<std::string> image;
     std::vector<std::string> video;
 
-    control.populate_popular_rank(1506000005000ll, "monthly", aid, text, image, video);
+    control.populate_popular_rank(1506000005000ll, params, aid, text, image, video);
     char buf[kMsgSize];
     size_t offset = 0;
 

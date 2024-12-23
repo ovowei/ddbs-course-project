@@ -124,7 +124,7 @@ int main() {
         std::cout << "Enter a command:" << std::endl;
         std::cout << "    QUERY <query statement>" << std::endl;
         std::cout << "    BEREAD" << std::endl;
-        std::cout << "    POPULAR" << std::endl;
+        std::cout << "    POPULAR [\"daily\", \"weekly\", \"monthly\"], suchas \"POPULAR daily\"" << std::endl;
         std::cout << "    MONITOR" << std::endl;
         std::cout << "    REGISTER <HOST:port>, <user>, <password>, <schema>, such as \"REGISTER 127.0.0.1:3312, root, 123456, standby1,\" notice the last comma" << std::endl;
         std::cout << "    DUMP <node_num>" << std::endl;
