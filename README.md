@@ -33,3 +33,25 @@ To run the project, execute the compiled binaries as required:
 ```bash
 ./connector_example # tmp
 ```
+
+## start mysql server
+create a docker
+in docker:
+apt install mysql-server
+vi /etc/mysql/mysql.conf.d/mysqld.cnf
+
+set port to a unused port:
+[mysqld]
+port = 3307  # example
+
+mkdir -p /var/run/mysqld
+chown mysql /var/run/mysqld/
+service mysql restart
+
+Authorized remote access:
+mysql -u root
+ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '123456';
+FLUSH PRIVILEGES;
+exit
+
+mysql -h 127.0.0.1 -P 3307 -u root -p

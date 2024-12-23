@@ -28,7 +28,7 @@ int main(void) {
 
         /* Create a connection */
         driver = get_driver_instance();
-        con = driver->connect("tcp://127.0.0.1:3306", "", "your_password");
+        con = driver->connect("tcp://127.0.0.1:3310", "root", "123456");
 
         stmt = con->createStatement();
 

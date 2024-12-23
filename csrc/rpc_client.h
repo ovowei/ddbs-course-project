@@ -16,9 +16,10 @@ static constexpr uint8_t kregisterStandbyType = 8;
 
 static constexpr size_t kMsgSize = 1024;
 
-std::string clientname = "10.0.2.185";
-std::string servername = "10.0.2.183";
-uint16_t kUDPPort = 31850;
+std::string clientname = "127.0.0.1";
+std::string servername = "127.0.0.1";
+uint16_t serverport = 31850;
+uint16_t clientport = 31851;
 
 void sm_handler(int, erpc::SmEventType, erpc::SmErrType, void *) {}
 void cont_func(void *_context, void *_tag);
@@ -31,8 +32,8 @@ class Rpcclient {
     erpc::MsgBuffer req_msgbuf[kAppMaxConcurrency];
     erpc::MsgBuffer resp_msgbuf[kAppMaxConcurrency];
 
-    Rpcclient(int tid, const std::string &cli, uint16_t port) : thread_id(tid), client_name(cli), kUDPPort(port) {
-        client_uri = client_name + ":" + std::to_string(kUDPPort);
+    Rpcclient(int tid, const std::string &cli, uint16_t port) : thread_id(tid), client_name(cli){
+        client_uri = client_name + ":" + std::to_string(clientport);
         nexus = new erpc::Nexus(client_uri);
         rpc = new erpc::Rpc<erpc::CTransport>(nexus, nullptr, 0, sm_handler);
     }
@@ -41,7 +42,7 @@ class Rpcclient {
 
     void Activate_client(const std::string &ser) {
         server_name = ser;
-        server_uri = ser + ":" + std::to_string(kUDPPort);
+        server_uri = ser + ":" + std::to_string(serverport);
         session_num = rpc->create_session(server_uri, 0);
         while (!rpc->is_connected(session_num)) rpc->run_event_loop_once();
         for (int i = 0; i < kAppMaxConcurrency; ++i) {
@@ -59,7 +60,6 @@ class Rpcclient {
     void poll() { rpc->run_event_loop_once(); }
 
    private:
-    uint16_t kUDPPort;
     erpc::Rpc<erpc::CTransport> *rpc = nullptr;
     erpc::Nexus *nexus = nullptr;
     std::string client_name;

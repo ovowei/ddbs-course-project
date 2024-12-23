@@ -5,8 +5,8 @@
 #include "rpc_client.h"
 
 // Control 对象的初始化需要参数
-Control control("10.0.2.181", "root", "password", "primary1_schema",   // 第一个 Primary DB 参数
-                "10.0.2.182", "root", "password", "primary2_schema");  // 第二个 Primary DB 参数
+Control control("127.0.0.1:3310", "root", "123456", "primary1",   // 第一个 Primary DB 参数
+                "127.0.0.1:3311", "root", "123456", "primary2");  // 第二个 Primary DB 参数
 
 inline double get_time() {
     struct timeval tv;
@@ -91,6 +91,7 @@ void req_handler_register(erpc::ReqHandle *req_handle, void *) {
 }
 
 void req_handler_monitor(erpc::ReqHandle *req_handle, void *) {
+    printf("go into monitor handler\n");
     auto &resp = req_handle->pre_resp_msgbuf_;
     char *buf = (char *)resp.buf_;
 
@@ -122,24 +123,52 @@ void req_handler_dump(erpc::ReqHandle *req_handle, void *context) {
 }
 
 int main(int argc, char *argv[]) {
-
     control.bulk_load(1);
     control.bulk_load(2);
 
-    std::string server_uri = servername + ":" + std::to_string(kUDPPort);
-    erpc::Nexus nexus(server_uri);
+    std::string host = "127.0.0.1:3312";
+    std::string user = "root";
+    std::string password = "123456";
+    std::string schema = "standby1";
+    control.add_standby_db(host, user, password, schema);
+    control.get_monitoring_info();
 
-    nexus.register_req_func(kreadType, req_handler_read);
-    nexus.register_req_func(kbereadType, req_handler_beread);
-    nexus.register_req_func(kpopularType, req_handler_popular);
-    nexus.register_req_func(kregisterStandbyType, req_handler_register);
-    nexus.register_req_func(kmonitorType, req_handler_monitor);
-    nexus.register_req_func(kdump0Type, req_handler_dump);
-    nexus.register_req_func(kdump1Type, req_handler_dump);
+    control.populate_be_read();
 
-    rpc = new erpc::Rpc<erpc::CTransport>(&nexus, nullptr, 0, nullptr);
-
-    while (true) {
-        rpc->run_event_loop_once();
+    std::vector<std::string> aid;
+    std::vector<std::string> text;
+    std::vector<std::string> image;
+    std::vector<std::string> video;
+    control.populate_popular_rank(1506000005000ll, "monthly", aid, text, image, video);
+    for (int i = 0; i < 5; i++) {
+        printf("aid = %s, text = %s, image = %s, video = %s\n", aid[i].c_str(), text[i].c_str(), image[i].c_str(), video[i].c_str());
     }
+
+    control.get_monitoring_info();
+
+    // std::string query = "select * from user limit 10";
+    std::string query =
+        "select uid, gender, aid, title, articleTags, agreeOrNot from article join (select uid, aid, agreeOrNot, commentOrNot, shareOrNot from user_read) on "
+        "aid=aid join user on uid=uid where agreeOrNot = 1 and gender = male limit 10";
+    std::cout << "process query: " << query << std::endl;
+    Table *res = control.process_query(query);
+    res->print();
+
+    // std::string server_uri = servername + ":" + std::to_string(serverport);
+    // // std::cout<<servername<<" "<<serverport<<std::endl;
+    // erpc::Nexus nexus(server_uri);
+
+    // nexus.register_req_func(kreadType, req_handler_read);
+    // nexus.register_req_func(kbereadType, req_handler_beread);
+    // nexus.register_req_func(kpopularType, req_handler_popular);
+    // nexus.register_req_func(kregisterStandbyType, req_handler_register);
+    // nexus.register_req_func(kmonitorType, req_handler_monitor);
+    // nexus.register_req_func(kdump0Type, req_handler_dump);
+    // nexus.register_req_func(kdump1Type, req_handler_dump);
+
+    // rpc = new erpc::Rpc<erpc::CTransport>(&nexus, nullptr, 0, nullptr);
+
+    // while (true) {
+    //     rpc->run_event_loop_once();
+    // }
 }

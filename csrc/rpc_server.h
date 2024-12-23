@@ -240,18 +240,22 @@ class DataBaseConnect {
    public:
     sql::Driver *driver;
     sql::Connection *con;
-    sql::Statement *stmt;
+    sql::Connection *thread_local_con;
     sql::ResultSet *res;
 
     std::string host;
+    std::string user;
+    std::string password;
     std::string schema;
 
     enum { DB1, DB2, STANDBY, DUMP } status;
 
-    DataBaseConnect(std::string host, std::string user, std::string password, std::string schema, bool need_to_reset_schema = true) {
+    DataBaseConnect(std::string host, std::string user, std::string password, std::string schema, bool need_to_reset_schema = true)
+        : host(host), schema(schema), user(user), password(password) {
         driver = get_driver_instance();
         con = driver->connect(host, user, password);
-        stmt = con->createStatement();
+        thread_local_con = nullptr;
+        sql::Statement *stmt = con->createStatement();
         status = STANDBY;
         if (need_to_reset_schema) {
             stmt->execute("DROP DATABASE IF EXISTS " + schema);
@@ -262,44 +266,102 @@ class DataBaseConnect {
         }
     }
 
-    void execute(std::string sql) { stmt->execute(sql); }
+    void execute_batch(std::string sql) {
+        std::istringstream ss(sql);
+        std::string single_sql;
+        sql::Statement *stmt = con->createStatement();
 
-    sql::ResultSet *executeQuery(std::string sql) { return stmt->executeQuery(sql); }
+        // 逐条读取 SQL 语句，按分号分割
+        while (std::getline(ss, single_sql, ';')) {
+            // 去除 SQL 语句前后的空白字符，包括空格、换行符和制表符
+            single_sql.erase(0, single_sql.find_first_not_of(" \t\n\r"));
+            single_sql.erase(single_sql.find_last_not_of(" \t\n\r") + 1);
 
-    // Check connection status
-    bool check_connection_status() {
-        try {
-            stmt->execute("SELECT 1;");
-            return true;
-        } catch (sql::SQLException &e) {
-            std::cerr << "Connection failed: " << e.what() << std::endl;
-            return false;
+            // 如果 SQL 语句非空，执行它
+            if (!single_sql.empty()) {
+                // printf("Executing: %s\n", single_sql.c_str());
+                try {
+                    stmt->execute(single_sql);  // 执行 SQL 语句
+                } catch (const sql::SQLException &e) {
+                    std::cerr << "Error executing SQL: " << e.what() << std::endl;
+                }
+            }
         }
     }
 
-    // Get the number of rows in a specific table
+    void execute(std::string sql) {
+        sql::Statement *stmt = con->createStatement();
+        stmt->execute(sql);
+        // sql::ResultSet *sql_result;
+        // while (stmt->getMoreResults()) {
+        //     sql_result = stmt->getResultSet();
+        // }
+        // sql_result->close();
+        // stmt->close();
+        // delete sql_result;
+        // delete stmt;
+    }
+
+    sql::ResultSet *executeQuery(std::string sql) {
+        sql::Statement *stmt = con->createStatement();
+        return stmt->executeQuery(sql);
+    }
+
+    // 检查数据库连接状态
+    bool check_connection_status() {
+        try {
+            sql::Statement *stmt = con->createStatement();
+            stmt->execute("SELECT 1");
+            sql::ResultSet *sql_result;
+            while (stmt->getMoreResults()) {
+                sql_result = stmt->getResultSet();
+            }
+
+            return true;  // 查询成功，返回 true
+        } catch (sql::SQLException &e) {
+            std::cerr << "Connection failed: " << e.what() << std::endl;
+            return false;  // 如果抛出异常，则返回 false
+        }
+    }
+
     int get_table_row_count(const std::string &table_name) {
         try {
+            sql::Statement *stmt = con->createStatement();
             std::string query = "SELECT COUNT(*) FROM " + table_name;
             sql::ResultSet *res = stmt->executeQuery(query);
 
+            int row_count = 0;
             if (res->next()) {
-                return res->getInt(1);  // Return the row count
+                row_count = res->getInt(1);  // Return the row count
             }
-            return 0;  // If no result, return 0
+
+            delete res;        // Properly delete the ResultSet
+            delete stmt;       // Properly delete the Statement
+            return row_count;  // Return the row count
         } catch (sql::SQLException &e) {
             std::cerr << "Error checking row count for table '" << table_name << "': " << e.what() << std::endl;
             return 0;  // If an error occurs (e.g., table does not exist), return 0
         }
     }
 
-    // Get the workload or any other monitoring info (e.g., active queries)
     int get_current_workload() {
-        // Placeholder for workload query, e.g., active queries
-        std::string query = "SHOW STATUS LIKE 'Threads_connected';";
-        sql::ResultSet *res = executeQuery(query);
-        res->next();
-        return res->getInt(2);  // Get the number of connected threads
+        try {
+            std::string query = "SHOW STATUS LIKE 'Threads_connected';";
+            sql::Statement *stmt = con->createStatement();
+            sql::ResultSet *res = stmt->executeQuery(query);
+
+            int workload = 0;
+            if (res->next()) {
+                workload = res->getInt(2);  // Get the number of connected threads
+            }
+
+            delete res;       // Properly delete the ResultSet
+            delete stmt;      // Properly delete the Statement
+            return workload;  // Return the current workload (number of threads connected)
+        } catch (sql::SQLException &e) {
+            std::cerr << "Error fetching current workload: " << e.what() << std::endl;
+            return 0;  // If an error occurs, return 0
+        }
     }
 };
 
@@ -401,12 +463,13 @@ class Control {
 
     // Function to get the monitoring info from all databases
     void get_monitoring_info() {
+        std::cout << "----------------------------------------" << std::endl;
         for (auto &db : db_cons) {
             std::cout << "Monitoring info for DB at host: " << db->host << std::endl;
 
             // Connection status
-            bool connection_status = db->check_connection_status();
-            std::cout << "Connection status: " << (connection_status ? "Connected" : "Disconnected") << std::endl;
+            // bool connection_status = db->check_connection_status();
+            // std::cout << "Connection status: " << (connection_status ? "Connected" : "Disconnected") << std::endl;
 
             // Output database status (Primary, Standby, Offline)
             std::string status_str;
@@ -445,6 +508,10 @@ class Control {
 
     // Function to get the monitoring info from all databases
     void get_monitoring_info(char *buf, size_t &offset) {
+        // Separator between database info
+        snprintf(buf + offset, 1024, "----------------------------------------\n");
+        offset += strlen(buf + offset);  // Update offset
+
         for (auto &db : db_cons) {
             // Append database host info
             snprintf(buf + offset, 1024, "Monitoring info for DB at host: %s\n", db->host.c_str());
@@ -595,7 +662,9 @@ class Control {
             DataBaseConnect *new_db = new DataBaseConnect(host, user, password, schema, true);
 
             // 检查连接是否成功
-            new_db->execute("SELECT 1;");  // 简单的 SQL 检查连接是否有效
+            sql::Statement *stmt = new_db->con->createStatement();
+            sql::ResultSet *res = stmt->executeQuery("SELECT 1;");
+            delete res;
 
             // 设置状态为 STANDBY
             new_db->status = DataBaseConnect::STANDBY;
@@ -619,7 +688,18 @@ class Control {
 
             for (size_t i = 0; i < db_cons.size(); ++i) {
                 try {
-                    db_cons[i]->execute("SELECT 1;");
+                    if (db_cons[i]->thread_local_con == nullptr) {
+                        db_cons[i]->thread_local_con = db_cons[i]->driver->connect(db_cons[i]->host, db_cons[i]->user, db_cons[i]->password);
+
+                        sql::Statement *stmt = db_cons[i]->thread_local_con->createStatement();
+
+                        stmt->execute("DROP DATABASE IF EXISTS test");
+                        stmt->execute("CREATE DATABASE test");
+                        db_cons[i]->thread_local_con->setSchema("test");
+                    }
+                    sql::Statement *stmt = db_cons[i]->thread_local_con->createStatement();
+                    sql::ResultSet *res = stmt->executeQuery("SELECT 1;");
+                    delete res;
                     if (db_cons[i]->status == DataBaseConnect::DB1 || db_cons[i]->status == DataBaseConnect::DB2) {
                         primary_count++;
                     }
@@ -631,6 +711,7 @@ class Control {
                         db_cons[i]->status = DataBaseConnect::DUMP;
                         standby_dbs.erase(i);
                     }
+                    printf("Database at host %s is down. Error: %s\n", db_cons[i]->host.c_str(), e.what());
                 }
             }
 
@@ -657,9 +738,8 @@ class Control {
         std::cout << "Sufficient primary databases available. Resuming execution." << std::endl;
     }
 
-    Control(const std::string &primary1_host, const std::string &primary1_user, const std::string &primary1_password,
-                     const std::string &primary1_schema, const std::string &primary2_host, const std::string &primary2_user,
-                     const std::string &primary2_password, const std::string &primary2_schema) {
+    Control(const std::string &primary1_host, const std::string &primary1_user, const std::string &primary1_password, const std::string &primary1_schema,
+            const std::string &primary2_host, const std::string &primary2_user, const std::string &primary2_password, const std::string &primary2_schema) {
         // initialize schema
         init_schema_user();
         init_schema_article();
@@ -677,6 +757,8 @@ class Control {
             primary_db[1] = new DataBaseConnect(primary2_host, primary2_user, primary2_password, primary2_schema, true);
             primary_db[1]->status = DataBaseConnect::DB2;
             db_cons.push_back(primary_db[1]);
+
+            create_popular_rank();
 
             std::cout << "Two primary databases initialized successfully." << std::endl;
         } catch (sql::SQLException &e) {
@@ -698,12 +780,10 @@ class Control {
         Timer timer;
 
         if (dbms_no == 1) {
-            const std::vector<std::string> sql_files = {"../sql/user.sql",
-                                                        "../db-generation/user_bj.sql",
-                                                        "../db-generation/article.sql",
-                                                        "../db-generation/article_cs.sql",
-                                                        "../db-generation/user_read.sql",
-                                                        "../db-generation/user_read_bj.sql"};
+            const std::vector<std::string> sql_files = {"../sql/user.sql",       "../sql/user_bj.sql",   "../sql/article.sql",
+                                                        "../sql/article_tc.sql", "../sql/user_read.sql", "../sql/user_read_bj.sql"};
+
+            // const std::vector<std::string> sql_files = {"../sql/user.sql"};
 
             for (const auto &file_path : sql_files) {
                 try {
@@ -715,7 +795,7 @@ class Control {
 
                     std::string sql((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
                     timer.begin();
-                    primary_db[0]->execute(sql);
+                    primary_db[0]->execute_batch(sql);
                     timer.end_print();
 
                     std::cout << "Executed SQL from file: " << file_path << "\n";
@@ -740,7 +820,7 @@ class Control {
 
                     std::string sql((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
                     timer.begin();
-                    primary_db[1]->execute(sql);
+                    primary_db[1]->execute_batch(sql);
                     timer.end_print();
 
                     std::cout << "Executed SQL from file: " << file_path << "\n";
@@ -751,9 +831,12 @@ class Control {
 
             puts("Bulk loaded user, article, read table for DB2!");
         }
+        wait_for_primary();
     }
 
     void populate_be_read() {
+        Timer timer;
+        timer.begin();
         // here the timestamps are from user_read table
         // the aggregated timestamp of be_read table should be the maximum value of these timestamps (the latest result)
         std::string query =
@@ -900,11 +983,15 @@ class Control {
         primary_db[1]->execute(partition_sql1);
         primary_db[1]->execute(partition_sql2_2);
 
+        timer.end_print();
         puts("Populated be_read table!");
     }
 
     void populate_popular_rank(ll query_time, std::string query_granularity, std::vector<std::string> &aid, std::vector<std::string> &text,
                                std::vector<std::string> &image, std::vector<std::string> &video) {
+        Timer timer;
+        timer.begin();
+
         if (query_time < 1506000000000ll || query_time > 1506000009995ll) {
             printf("Timestamp Should Between 1506000000000 and 1506000009995!\n");
             return;
@@ -978,6 +1065,9 @@ class Control {
             image.push_back(query_res->tuples[buff[i].second][4]);
             video.push_back(query_res->tuples[buff[i].second][5]);
         }
+
+        timer.end_print();
+        puts("Populated popular_rank table!");
 
         return;
     }

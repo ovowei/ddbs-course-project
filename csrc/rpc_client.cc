@@ -11,7 +11,7 @@ static uint8_t flag = 0;  // 请求标志，用于跟踪请求类型
 char dummy[] = "test";    // 示例数据
 Timer timer;
 FS_ENGINE fs;
-Rpcclient rpcclient(0, clientname, kUDPPort);
+Rpcclient rpcclient(0, clientname, clientport);
 
 // Continuation function，输出请求类型、返回结果和执行时间
 void cont_func(void *_context, void *_tag) {
@@ -61,10 +61,11 @@ int main(int argc, char *argv[]) {
 
     while (true) {
         // 提示用户输入请求类型
-        std::cout << "Enter request type (read, beread, popular, dump0, dump1, monitor, register): ";
+        std::cout << "Enter request type (query, beread, popular, dump0, dump1, monitor, register): ";
         std::cin >> input;
 
-        if (input == "read") {
+        if (input == "query") {
+            printf("process query\n");
             flag = kreadType;
             std::cout << "Enter your query (press enter for default query): ";
             std::cin.ignore();  // 清空输入缓冲区
@@ -79,27 +80,33 @@ int main(int argc, char *argv[]) {
 
             rpcclient.send_req(query.c_str(), query.length(), 0, kreadType);
         } else if (input == "beread") {
+            printf("process beread\n");
             flag = kbereadType;
             rpcclient.send_req(dummy, sizeof(dummy), 0, kbereadType);
         } else if (input == "popular") {
+            printf("process popular\n");
             flag = kpopularType;
             rpcclient.send_req(dummy, sizeof(dummy), 0, kpopularType);
         } else if (input == "dump0") {
+            printf("process dump0\n");
             flag = kdump0Type;
 
             // 发送 Primary 0 的索引
             char primary_index[] = "0";  // Primary 0
             rpcclient.send_req(primary_index, sizeof(primary_index), 0, kdump0Type);
         } else if (input == "dump1") {
+            printf("process dump1\n");
             flag = kdump1Type;
 
             // 发送 Primary 1 的索引
             char primary_index[] = "1";  // Primary 1
             rpcclient.send_req(primary_index, sizeof(primary_index), 0, kdump1Type);
         } else if (input == "monitor") {
+            printf("process monitor\n");
             flag = kmonitorType;
             rpcclient.send_req(dummy, sizeof(dummy), 0, kmonitorType);
         } else if (input == "register") {
+            printf("process register\n");
             flag = kregisterStandbyType;
 
             // 用户输入 Standby 节点信息

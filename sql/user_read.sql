@@ -11,7 +11,8 @@ CREATE TABLE `user_read_temp` (
   `commentDetail` char(100) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-LOAD DATA INFILE '/mnt/djw/db_generator/user_read_temp.dat'
+LOAD DATA INFILE '/mnt/djw/db_generator/read.dat'
 INTO TABLE `user_read_temp`
 FIELDS TERMINATED BY ',' 
+ENCLOSED BY '"'
 LINES TERMINATED BY '\n';

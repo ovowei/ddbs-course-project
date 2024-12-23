@@ -10,12 +10,12 @@ CREATE TABLE `article_temp` (
   `authors` char(13) DEFAULT NULL,
   `language` char(3) DEFAULT NULL,
   `text` char(31) DEFAULT NULL,
-  `image` char(32) DEFAULT NULL,
+  `image` char(64) DEFAULT NULL,
   `video` char(32) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 LOAD DATA INFILE '/mnt/djw/db_generator/article.dat'
 INTO TABLE `article_temp`
 FIELDS TERMINATED BY ',' 
+ENCLOSED BY '"'
 LINES TERMINATED BY '\n';
-

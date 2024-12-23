@@ -11,14 +11,16 @@ CREATE TABLE `user_read` (
   `commentDetail` char(100) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-LOCK TABLES `user_read_temp` READ, `user_read` WRITE;
+LOCK TABLES `user_read_temp` READ, `user` READ, `user_read` WRITE;
+
 
 INSERT INTO `user_read`
-SELECT ur.*
-FROM `user_read` ur
-JOIN `user` u
-ON ur.uid = u.uid
-WHERE u.region = 'Beijing';
+SELECT `user_read_temp`.*
+FROM `user_read_temp`
+JOIN `user`
+ON `user_read_temp`.uid = `user`.uid
+WHERE `user`.region = 'Beijing';
+
 
 
 UNLOCK TABLES;

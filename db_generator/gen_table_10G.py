@@ -37,8 +37,8 @@ def gen_an_user(i):
 def gen_an_article(i):
     timeBegin = 1506000000000
     article = [
-        'a' + str(i),
         str(timeBegin + i),
+        'a' + str(i),
         str(i),
         "title%d" % i,
         "science" if random.random() > 0.55 else "technology",
@@ -64,20 +64,20 @@ def gen_an_article(i):
     copyfile(f'bbc_news_texts/{random_category}/{random_news}', f'{path}/text_a{i}.txt')
 
     # 生成图片
-    image_num = random.randint(1, 3)
+    image_num = random.randint(1, 2)
     image_str = ",".join([f'image_a{i}_{j}.jpg' for j in range(image_num)])
-    article[10] = image_str
+    article[10] = f'"{image_str}"'  # 用双引号括起来
 
     for j in range(image_num):
         copyfile(f'./image/{random.randint(0, 599)}.jpg', f'{path}/image_a{i}_{j}.jpg')
 
     # 生成视频
     if random.random() < 0.05:
-        article.append(f"video_a{i}_video.flv")
+        article.append(f'"video_a{i}_video.flv"')
         video_src = './video/video1.flv' if random.random() < 0.5 else './video/video2.flv'
         copyfile(video_src, f'{path}/video_a{i}_video.flv')
     else:
-        article.append("")
+        article.append('""')
 
     aid_lang[article[2]] = article[8]  # aid 和 language 的映射
     return article
@@ -108,7 +108,7 @@ def gen_an_read(i):
             read[5] = "1" if random.random() < ps[1] else "0"  # agreeOrNot
             read[6] = "1" if random.random() < ps[2] else "0"  # commentOrNot
             read[7] = "1" if random.random() < ps[3] else "0"  # shareOrNot
-            read[8] = f"comments to this article: ({read[2]},{read[3]})"  # commentDetail
+            read[8] = f'"comments to this article: ({read[2]},{read[3]})"'  # commentDetail
             return read
 
 

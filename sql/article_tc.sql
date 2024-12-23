@@ -10,11 +10,11 @@ CREATE TABLE `article` (
   `authors` char(13) DEFAULT NULL,
   `language` char(3) DEFAULT NULL,
   `text` char(31) DEFAULT NULL,
-  `image` char(32) DEFAULT NULL,
+  `image` char(64) DEFAULT NULL,
   `video` char(32) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-LOCK TABLES `article_temp` READ, `user` WRITE;
+LOCK TABLES `article_temp` READ, `article` WRITE;
 
 INSERT INTO `article`
 SELECT *

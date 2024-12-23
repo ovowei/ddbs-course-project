@@ -21,7 +21,7 @@ LOCK TABLES `user_temp` READ, `user` WRITE;
 
 INSERT INTO `user`
 SELECT *
-FROM `user`
+FROM `user_temp`
 WHERE `region` = 'Beijing';
 
 UNLOCK TABLES;
