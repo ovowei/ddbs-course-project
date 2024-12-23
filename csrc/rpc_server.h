@@ -398,17 +398,11 @@ class Control {
         } else {
             std::cout << "Database " << db_index << " is already in DUMP state." << std::endl;
         }
-        check_and_promote_primary();
+        check_and_promote_primary(db_index);
     }
 
-    void check_and_promote_primary() {
-        int primary_count = 0;
-        for (int i = 0; i < 2; ++i) {
-            if (primary_db[i]->status == DataBaseConnect::DB1 || primary_db[i]->status == DataBaseConnect::DB2) {
-                primary_count++;
-            }
-        }
-
+    void check_and_promote_primary(int db_index) {
+        int primary_count = 1;
         if (primary_count < 2) {
             std::cout << "One or more primary databases are down. Attempting to promote standby DB..." << std::endl;
 
@@ -418,16 +412,21 @@ class Control {
                 standby_dbs.erase(standby_index);
 
                 // Promote the standby DB to primary
-                primary_db[primary_count] = db_cons[standby_index];
-                primary_db[primary_count]->status = (primary_count == 0) ? DataBaseConnect::DB1 : DataBaseConnect::DB2;
-                std::cout << "Promoted standby DB at index " << standby_index << " to primary DB " << primary_count << "." << std::endl;
+                primary_db[db_index] = db_cons[standby_index];
+                primary_db[db_index]->status = (db_index == 0) ? DataBaseConnect::DB1 : DataBaseConnect::DB2;
+                std::cout << "Promoted standby DB at index " << standby_index << " to primary DB " << db_index << "." << std::endl;
 
                 // Download binlog from HDFS and apply it
-                std::string binlog_path = "/path/to/binlogs/mysql-bin.000001";  // HDFS path to the binlog
-                std::string local_binlog_path = "/tmp/mysql-bin.000001";        // Local path to store the binlog
+                // std::string binlog_path = "/path/to/binlogs/mysql-bin.000001";  // HDFS path to the binlog
+                // std::string local_binlog_path = "/tmp/mysql-bin.000001";        // Local path to store the binlog
 
                 // Download binlog from HDFS
                 // fs_engine.download_binlog_from_hdfs(binlog_path, local_binlog_path);
+
+                std::string local_binlog_path = "/mnt/djw/db_generator/binlog/mysql1-bin.log/backup.sql";  // Local path to store the binlog
+                if (db_index == 1) {
+                    local_binlog_path = "/mnt/djw/db_generator/binlog/mysql2-bin.log/backup.sql";  // Local path to store the binlog
+                }
 
                 // Apply binlog to new primary
                 apply_binlog_to_primary(standby_index, local_binlog_path);
@@ -449,7 +448,21 @@ class Control {
         try {
             // Here, you would typically use mysqlbinlog or similar tools to apply the binlog
             // In this case, we assume that the binlog file is available and ready to be applied
-            std::string command = "mysqlbinlog " + binlog_path + " | mysql -u root -p";
+
+            std::string host = db_cons[standby_index]->host;
+
+            // 找到 ':' 的位置，拆分出 host 和 port
+            size_t colon_pos = host.find(':');
+            if (colon_pos == std::string::npos) {
+                std::cerr << "Invalid host format" << std::endl;
+                return;
+            }
+
+            std::string ip = host.substr(0, colon_pos);     // 提取IP地址
+            std::string port = host.substr(colon_pos + 1);  // 提取端口号
+
+            std::string command = "mysql -h " + ip + " -P " + port + " -u " + db_cons[standby_index]->user + " -p" + db_cons[standby_index]->password + " " +
+                                  db_cons[standby_index]->schema + " < " + binlog_path;
             int ret = system(command.c_str());
             if (ret != 0) {
                 std::cerr << "Error applying binlog: " << ret << std::endl;

@@ -2,11 +2,11 @@
 
 #include <sys/time.h>
 
+#include "hdfs_ioengine.h"
 #include "rpc_client.h"
-
 // Control 对象的初始化需要参数
-Control control("127.0.0.1:3310", "root", "123456", "primary1",   // 第一个 Primary DB 参数
-                "127.0.0.1:3311", "root", "123456", "primary2");  // 第二个 Primary DB 参数
+Control control("127.0.0.1:3310", "root", "123456", "primary_test",   // 第一个 Primary DB 参数
+                "127.0.0.1:3311", "root", "123456", "primary_test");  // 第二个 Primary DB 参数
 
 inline double get_time() {
     struct timeval tv;
@@ -22,6 +22,8 @@ std::vector<std::string> text;
 std::vector<std::string> image;
 std::vector<std::string> video;
 static uint8_t flag = 0;
+
+FS_ENGINE fs_engine;
 
 // 其余的请求处理函数不变
 void req_handler_read(erpc::ReqHandle *req_handle, void *) {
@@ -125,6 +127,7 @@ void req_handler_dump(erpc::ReqHandle *req_handle, void *context) {
 int main(int argc, char *argv[]) {
     control.bulk_load(1);
     control.bulk_load(2);
+    // fs_engine.upload_article_details_to_hdfs("/mnt/djw/db_generator/articles");
 
     std::string host = "127.0.0.1:3312";
     std::string user = "root";
@@ -142,6 +145,8 @@ int main(int argc, char *argv[]) {
     control.populate_popular_rank(1506000005000ll, "monthly", aid, text, image, video);
     for (int i = 0; i < 5; i++) {
         printf("aid = %s, text = %s, image = %s, video = %s\n", aid[i].c_str(), text[i].c_str(), image[i].c_str(), video[i].c_str());
+        std::string aaid = "article" + aid[i];
+        // fs_engine.download_article_details_from_hdfs(aaid);
     }
 
     control.get_monitoring_info();
@@ -152,6 +157,27 @@ int main(int argc, char *argv[]) {
         "aid=aid join user on uid=uid where agreeOrNot = 1 and gender = male limit 10";
     std::cout << "process query: " << query << std::endl;
     Table *res = control.process_query(query);
+    res->print();
+
+    aid.clear();
+    text.clear();
+    image.clear();
+    video.clear();
+    control.populate_popular_rank(1506000005000ll, "daily", aid, text, image, video);
+    for (int i = 0; i < 5; i++) {
+        printf("aid = %s, text = %s, image = %s, video = %s\n", aid[i].c_str(), text[i].c_str(), image[i].c_str(), video[i].c_str());
+        std::string aaid = "article" + aid[i];
+        // fs_engine.download_article_details_from_hdfs(aaid);
+    }
+
+    control.manual_dump_primary(0);
+
+    // std::string query = "select * from user limit 10";
+    query =
+        "select uid, gender, aid, title, articleTags, agreeOrNot from article join (select uid, aid, agreeOrNot, commentOrNot, shareOrNot from user_read) on "
+        "aid=aid join user on uid=uid where agreeOrNot = 1 and gender = male limit 10";
+    std::cout << "process query: " << query << std::endl;
+    res = control.process_query(query);
     res->print();
 
     // std::string server_uri = servername + ":" + std::to_string(serverport);

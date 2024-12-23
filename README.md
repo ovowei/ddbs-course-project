@@ -31,7 +31,9 @@ make -j
 To run the project, execute the compiled binaries as required:
 
 ```bash
-./connector_example # tmp
+cd build
+./rpc_server
+./rpc_client
 ```
 
 ## start mysql server
@@ -55,3 +57,16 @@ FLUSH PRIVILEGES;
 exit
 
 mysql -h 127.0.0.1 -P 3307 -u root -p
+
+# hdfs config
+install and setup hadoop3.4.1 following official tutorial
+apt-get install openjdk-8-jdk
+export PATH=$PATH:/home/user/hadoop-3.4.1/bin:/home/user/hadoop-3.4.1/sbin
+export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+export JRE_HOME=${JAVA_HOME}/jre  
+export CLASSPATH=.:${JAVA_HOME}/lib:${JRE_HOME}/lib  
+export PATH=${JAVA_HOME}/bin:$PATH 
+hdfs dfs -mkdir input
+hdfs dfs -put test.txt input/
+hdfs dfs -cat test.txt input/
+hdfs dfs -get input/test.txt test.txt
