@@ -47,3 +47,13 @@ target_link_libraries(rpc_server erpc pthread numa dl ibverbs mysqlcppconn sqlpa
 add_executable(connector_example csrc/connector_example.cc)
 add_dependencies(connector_example build_sql_parser)
 target_link_libraries(connector_example mysqlcppconn)
+
+
+# client
+add_executable(client csrc/client.cc)
+
+
+# server 
+add_executable(server csrc/server.cc)
+add_dependencies(server build_erpc build_sql_parser)
+target_link_libraries(server erpc pthread numa dl ibverbs mysqlcppconn sqlparser)
