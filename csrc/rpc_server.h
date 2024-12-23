@@ -146,21 +146,6 @@ class Table {
         buf_offset += s.length();
     }
     void set_buf(char *buf, size_t &offset) {
-        // std::vector<int> max_length;
-        // for (int i=0;i<schema->n_columns;i++) {
-        //     int ml = schema->column_name[i].length();
-        //     for (auto it:tuples) {
-        //         ml = std::max(ml, (int)it[i].length());
-        //     }
-        //     max_length.push_back(ml);
-        // }
-
-        // for (auto it : tuples) {
-        //     for (int i = 0; i < schema->n_columns; i++) {
-        //         memcpy(buf + buf_offset, it[i].c_str(), it[i].length());
-        //         buf_offset += it[i].length();
-        //     }
-        // }
         std::vector<int> max_length;
         for (int i = 0; i < schema->n_columns; i++) {
             int ml = schema->column_name[i].length();
@@ -220,7 +205,7 @@ class Table {
 
         for (int i = 0; i < schema->n_columns; i++) {
             // std::cout<<"+";
-            copy_on_buf(buf, "+\n");
+            copy_on_buf(buf, "+");
             for (int j = 0; j < max_length[i] + 2; j++) {
                 // std::cout<<"-";
                 copy_on_buf(buf, "-");
@@ -531,9 +516,9 @@ class Control {
             offset += strlen(buf + offset);  // Update offset after writing to buffer
 
             // Connection status
-            bool connection_status = db->check_connection_status();
-            snprintf(buf + offset, 1024, "Connection status: %s\n", connection_status ? "Connected" : "Disconnected");
-            offset += strlen(buf + offset);  // Update offset
+            // bool connection_status = db->check_connection_status();
+            // snprintf(buf + offset, 1024, "Connection status: %s\n", connection_status ? "Connected" : "Disconnected");
+            // offset += strlen(buf + offset);  // Update offset
 
             // Output database status (Primary, Standby, Offline)
             std::string status_str;
@@ -685,6 +670,12 @@ class Control {
             // 添加到 Control 的管理中
             db_cons.push_back(new_db);
             standby_dbs.insert(db_cons.size() - 1);  // 记录为 standby
+
+            if (primary_db[0]->status == DataBaseConnect::DUMP) {
+                check_and_promote_primary(0);
+            } else if (primary_db[1]->status == DataBaseConnect::DUMP) {
+                check_and_promote_primary(1);
+            }
 
             std::cout << "Successfully added a new standby database." << std::endl;
             return 1;

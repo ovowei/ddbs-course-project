@@ -1,44 +1,32 @@
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+#include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <sstream>
 #include <string>
-#include <cstdlib>
-#include <cstring>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 
 #include "rpc_server.h"
 
+Control control("127.0.0.1:3310", "root", "123456", "primary1",   // 第一个 Primary DB 参数
+                "127.0.0.1:3311", "root", "123456", "primary2");  // 第二个 Primary DB 参数
 
-Control control("sapphire2:6613", "root", "ddbsproject", "primary1",   // 第一个 Primary DB 参数
-                "sapphire3:6613", "root", "ddbsproject", "primary2");  // 第二个 Primary DB 参数
-
-
-static constexpr size_t kMsgSize = 2048;
-static constexpr uint16_t kServerPort = 31813; // 服务器端口
+static constexpr size_t kMsgSize = 20480;
+static constexpr uint16_t kServerPort = 31818;  // 服务器端口
 
 // 定义支持的命令
-enum Command {
-    QUERY,
-    BEREAD,
-    POPULAR,
-    DUMP0,
-    DUMP1,
-    MONITOR,
-    REGISTER,
-    EXIT,
-    INVALID
-};
+enum Command { QUERY, BEREAD, POPULAR, DUMP, MONITOR, REGISTER, EXIT, INVALID };
 
 // 函数：解析命令
 Command parseCommand(const std::string &cmd) {
     if (cmd == "QUERY") return QUERY;
     if (cmd == "BEREAD") return BEREAD;
     if (cmd == "POPULAR") return POPULAR;
-    if (cmd == "DUMP0") return DUMP0;
-    if (cmd == "DUMP1") return DUMP1;
+    if (cmd == "DUMP") return DUMP;
     if (cmd == "MONITOR") return MONITOR;
     if (cmd == "REGISTER") return REGISTER;
     if (cmd == "EXIT") return EXIT;
@@ -57,10 +45,10 @@ std::string handleQuery(const std::string &params) {
 
     std::cout << "query request:" + params << std::endl;
     res = control.process_query(params);
-    if(res != nullptr) {
+    if (res != nullptr) {
         res->set_buf(buf, offset);
-        return std::string(buf, offset); 
-    } 
+        return std::string(buf, offset);
+    }
     return "Unsupported Syntax!";
 }
 
@@ -81,16 +69,15 @@ std::string handlePopular(const std::string &params) {
         set_resp(del, buf, offset);
     }
 
-    return std::string(buf, offset); 
-
+    return std::string(buf, offset);
 }
 
 std::string handleMonitor(const std::string &params) {
     std::cout << "monitor request:" + params << std::endl;
     char buf[kMsgSize];
     size_t offset = 0;
-    control.get_monitoring_info(buf,offset);
-    return std::string(buf, offset); 
+    control.get_monitoring_info(buf, offset);
+    return std::string(buf, offset);
 }
 
 std::string handleRegister(const std::string &params) {
@@ -107,6 +94,8 @@ std::string handleRegister(const std::string &params) {
     std::getline(ss, password, ',');
     std::getline(ss, schema, ',');
 
+    std::cout << host << std::endl << user << std::endl << password << std::endl << schema << std::endl;
+
     try {
         control.add_standby_db(host, user, password, schema);
         strcpy(buf, "Standby registered successfully!");
@@ -115,46 +104,40 @@ std::string handleRegister(const std::string &params) {
         strcat(buf, e.what());
     }
 
-    return std::string(buf, offset); 
+    return std::string(buf, offset);
 }
 
 std::string handleDump(const std::string &params) {
+    std::cout << "dump request: " << params << std::endl;
+    int param_bool = (params == "1");
+    control.manual_dump_primary(param_bool);
     return "Dump core finished!";
 }
 
-
 // 函数：处理命令并生成响应
 std::string handleRequest(Command cmd, const std::string &params) {
-    
-
-    
-
-
     switch (cmd) {
         case QUERY:
             return handleQuery(params);
         case BEREAD:
             std::cout << "beread request:" << std::endl;
             control.populate_be_read();
-            return "Table `beread` has been ppopulated";
+            return "Table `beread` has been populated";
         case POPULAR:
             return handlePopular(params);
-        case DUMP0:
-            return handleDump(params);  
-        case DUMP1:
-            return handleDump(params);  
+        case DUMP:
+            return handleDump(params);
         case MONITOR:
-            return handleMonitor(params);  
+            return handleMonitor(params);
         case REGISTER:
-            return handleRegister(params);  
+            return handleRegister(params);
         default:
             return "Invalid Command";
     }
 }
 
-
-// UDP Server 
-int udpServer(){
+// UDP Server
+int udpServer() {
     int sockfd;
     struct sockaddr_in serverAddr, clientAddr;
     socklen_t clientAddrLen = sizeof(clientAddr);
@@ -196,7 +179,7 @@ int udpServer(){
         char clientIP[INET_ADDRSTRLEN];
         inet_ntop(AF_INET, &(clientAddr.sin_addr), clientIP, INET_ADDRSTRLEN);
         uint16_t clientPort = ntohs(clientAddr.sin_port);
-        
+
         std::string receivedMessage(buffer, recvLen);
         std::cout << "Received message from " << clientIP << ":" << clientPort << " -> " << receivedMessage << std::endl;
 
@@ -207,7 +190,7 @@ int udpServer(){
         std::string params = "";
         if (receivedMessage.length() > cmd.length()) {
             // 只有当命令后还有字符时，才截取参数部分
-            params = receivedMessage.substr(cmd.length() + 1); // 提取命令后面的参数
+            params = receivedMessage.substr(cmd.length() + 1);  // 提取命令后面的参数
         }
 
         Command command = parseCommand(cmd);
@@ -224,7 +207,6 @@ int udpServer(){
     close(sockfd);
     return 0;
 }
-
 
 // 主函数
 int main() {

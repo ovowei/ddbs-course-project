@@ -1,15 +1,15 @@
-#include <iostream>
-#include <string>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
+
 #include <cstdlib>
 #include <cstring>
-#include <vector>
+#include <iostream>
 #include <sstream>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-
+#include <string>
+#include <vector>
 
 static constexpr size_t kAppMaxConcurrency = 1;
 static constexpr uint8_t kqueryType = 2;
@@ -22,19 +22,17 @@ static constexpr uint8_t kregisterStandbyType = 8;
 static constexpr uint8_t kexitType = 9;
 static constexpr uint8_t kinvalidType = 10;
 
-static constexpr size_t kMsgSize = 1024;
+static constexpr size_t kMsgSize = 20480;
 std::string clientname = "127.0.0.1";
 std::string servername = "127.0.0.1";
-uint16_t serverport = 31813;
-uint16_t clientport = 31814;
-
-
+uint16_t serverport = 31818;
+uint16_t clientport = 31817;
 
 // 函数：解析命令和参数
 uint8_t parseCommand(const std::string &input, std::string &params) {
     std::istringstream iss(input);
     std::string cmd;
-    std::getline(iss, cmd, ' ');  // 获取命令部分
+    std::getline(iss, cmd, ' ');              // 获取命令部分
     params = input.substr(cmd.length() + 1);  // 获取命令后面的参数部分
 
     if (cmd == "query") return kqueryType;
@@ -47,7 +45,6 @@ uint8_t parseCommand(const std::string &input, std::string &params) {
     if (cmd == "exit") return kexitType;
     return kinvalidType;
 }
-
 
 // 函数：根据命令类型生成对应的消息内容
 std::string getMessageForCommand(uint8_t cmd, const std::string &params) {
@@ -73,8 +70,6 @@ std::string getMessageForCommand(uint8_t cmd, const std::string &params) {
     }
 }
 
-
-
 // 函数：发送UDP消息
 void sendMessage(int sockfd, const std::string &message, const struct sockaddr_in &serverAddr) {
     std::cout << message << std::endl;
@@ -83,9 +78,7 @@ void sendMessage(int sockfd, const std::string &message, const struct sockaddr_i
     }
 }
 // 函数：解析返回的消息
-void processMessage(const std::string &message) {
-    std::cout << "Processing received message: " << message << std::endl;
-}
+void processMessage(const std::string &message) { std::cout << "Processing received message: " << message << std::endl; }
 
 // 主函数
 int main() {
@@ -119,19 +112,20 @@ int main() {
     }
 
     std::string input;
-    
+
     while (true) {
         std::cout << "Enter a command:" << std::endl;
         std::cout << "    QUERY <query statement>" << std::endl;
         std::cout << "    BEREAD" << std::endl;
         std::cout << "    POPULAR [\"daily\", \"weekly\", \"monthly\"], suchas \"POPULAR daily\"" << std::endl;
         std::cout << "    MONITOR" << std::endl;
-        std::cout << "    REGISTER <HOST:port>, <user>, <password>, <schema>, such as \"REGISTER 127.0.0.1:3312, root, 123456, standby1,\" notice the last comma" << std::endl;
+        std::cout << "    REGISTER <HOST:port>,<user>,<password>,<schema>, such as \"REGISTER 127.0.0.1:3312,root,123456,standby1,\" notice the last comma"
+                  << std::endl;
         std::cout << "    DUMP <node_num>" << std::endl;
         std::cout << "    EXIT" << std::endl;
         std::cout << "Command: ";
         std::getline(std::cin, input);
-        
+
         if (input == "EXIT") {
             break;
         }
@@ -154,8 +148,6 @@ int main() {
 
         // 处理收到的消息
         // processMessage(receivedMessage);
-
-        
     }
 
     close(sockfd);
