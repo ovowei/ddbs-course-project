@@ -4,7 +4,7 @@
 
 #include "hdfs_ioengine.h"
 #include "rpc_client.h"
-// Control 对象的初始化需要参数
+
 Control control("127.0.0.1:3310", "root", "123456", "primary_test",   // 第一个 Primary DB 参数
                 "127.0.0.1:3311", "root", "123456", "primary_test");  // 第二个 Primary DB 参数
 
@@ -25,7 +25,7 @@ static uint8_t flag = 0;
 
 FS_ENGINE fs_engine;
 
-// 其余的请求处理函数不变
+
 void req_handler_read(erpc::ReqHandle *req_handle, void *) {
     auto &resp = req_handle->pre_resp_msgbuf_;
     char *buf = (char *)resp.buf_;

@@ -112,6 +112,7 @@ int main() {
     }
 
     std::string input;
+    
 
     while (true) {
         std::cout << "Enter a command:" << std::endl;

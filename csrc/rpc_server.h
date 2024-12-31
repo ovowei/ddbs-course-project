@@ -156,50 +156,36 @@ class Table {
         }
 
         for (int i = 0; i < schema->n_columns; i++) {
-            // std::cout<<"+";
             copy_on_buf(buf, "+");
             for (int j = 0; j < max_length[i] + 2; j++) {
-                // std::cout<<"-";
                 copy_on_buf(buf, "-");
             }
         }
-        // std::cout<<"+"<<std::endl;
         copy_on_buf(buf, "+\n");
 
         for (int i = 0; i < schema->n_columns; i++) {
-            // std::cout<<"| ";
             copy_on_buf(buf, "| ");
-            // std::cout<<schema->column_name[i];
             copy_on_buf(buf, schema->column_name[i]);
             for (int j = 0; j < max_length[i] - schema->column_name[i].length() + 1; j++) {
-                // std::cout<<" ";
                 copy_on_buf(buf, " ");
             }
         }
-        // std::cout<<"|"<<std::endl;
         copy_on_buf(buf, "|\n");
         for (int i = 0; i < schema->n_columns; i++) {
-            // std::cout<<"+";
             copy_on_buf(buf, "+");
             for (int j = 0; j < max_length[i] + 2; j++) {
-                // std::cout<<"-";
                 copy_on_buf(buf, "-");
             }
         }
-        // std::cout<<"+"<<std::endl;
         copy_on_buf(buf, "+\n");
         for (auto it : tuples) {
             for (int i = 0; i < schema->n_columns; i++) {
-                // std::cout<<"| ";
-                // std::cout<<it[i];
                 copy_on_buf(buf, "| ");
                 copy_on_buf(buf, it[i]);
                 for (int j = 0; j < max_length[i] - it[i].length() + 1; j++) {
-                    // std::cout<<" ";
                     copy_on_buf(buf, " ");
                 }
             }
-            // std::cout<<"|"<<std::endl;
             copy_on_buf(buf, "|\n");
         }
 
